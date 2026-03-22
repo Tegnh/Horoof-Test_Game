@@ -918,3 +918,44 @@ body {
   .qbank-layout { grid-template-columns: 1fr; height: auto; max-height: none; }
   .letter-grid { height: 180px; }
 }
+
+/* Footer Styles */
+.menu-footer {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards 1.5s;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  color: var(--ink);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-links a:hover {
+  transform: translateY(-5px) scale(1.2);
+  color: #2563eb;
+}
+
+.footer-copy {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.footer-name {
+  color: var(--ink);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 1px;
+}
