@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لعبة حروف</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <div id="view-menu" class="view active">
+    <div class="menu-wrap">
+      <div class="menu-logo-block">
+        <h1 class="logo-title">لعبة<br>حروف 🌙</h1>
+        <p class="logo-sub">استحوذ على الشبكة بكلمات تبدأ بالحروف!</p>
+      </div>
+
+      <nav class="menu-nav">
+        <button class="btn btn--black btn--xl" onclick="showView('setup')">▶ &nbsp;بدء اللعبة</button>
+        <button class="btn btn--white btn--xl" onclick="openModal('modal-howto')">؟ &nbsp;طريقة اللعب</button>
+        <button class="btn btn--white btn--xl" onclick="showView('qbank')">📚 &nbsp;بنك الأسئلة</button>
+      </nav>
+
+      <div class="menu-deco" aria-hidden="true">
+        <span class="deco-hex deco-hex--1">ح</span>
+        <span class="deco-hex deco-hex--2">ر</span>
+        <span class="deco-hex deco-hex--3">و</span>
+        <span class="deco-hex deco-hex--4">ف</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-setup" class="view">
+    <div class="page-shell page-shell--narrow">
+      <header class="page-hdr">
+        <button class="btn btn--ghost btn--back" onclick="showView('menu')">← رجوع</button>
+        <h2 class="page-hdr__title">إعدادات اللعبة</h2>
+      </header>
+
+      <div class="card">
+        <p class="card__label">حجم الشبكة (العرض × الطول)</p>
+        <div class="counter">
+          <button class="counter__btn" onclick="changeGridSize(-1)">−</button>
+          <output class="counter__val" id="grid-display">5 × 5</output>
+          <button class="counter__btn" onclick="changeGridSize(1)">+</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card__label">عدد الجولات</p>
+        <div class="counter">
+          <button class="counter__btn" onclick="changeRounds(-1)">−</button>
+          <output class="counter__val" id="rounds-display">3</output>
+          <button class="counter__btn" onclick="changeRounds(1)">+</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card__label">وقت الإجابة للسؤال</p>
+        <div class="timer-options">
+          <button class="btn btn--white timer-btn" data-time="15" onclick="setTimer(15)">15ث</button>
+          <button class="btn btn--black timer-btn selected" data-time="30" onclick="setTimer(30)">30ث</button>
+          <button class="btn btn--white timer-btn" data-time="60" onclick="setTimer(60)">60ث</button>
+          <button class="btn btn--white timer-btn" data-time="0" onclick="setTimer(0)">مفتوح</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card__label">ألوان الفريقين</p>
+        <div id="theme-options" class="theme-list"></div>
+      </div>
+
+      <div class="team-preview">
+        <div class="team-preview__side">
+          <div class="team-dot" id="prev-team1"></div>
+          <span>الفريق الأول</span>
+        </div>
+        <span class="vs-chip">VS</span>
+        <div class="team-preview__side">
+          <span>الفريق الثاني</span>
+          <div class="team-dot" id="prev-team2"></div>
+        </div>
+      </div>
+
+      <button class="btn btn--black btn--xl btn--full" onclick="startGame()">🎮 &nbsp;بدء الجولة الأولى</button>
+    </div>
+  </div>
+
+  <div id="view-board" class="view">
+    <div class="topbar">
+      <div class="score-block">
+        <div class="score-dot" id="t1-dot"></div>
+        <div class="score-info">
+          <span class="score-label">الفريق الأول (أعلى/أسفل)</span>
+          <span class="score-num" id="t1-score">0</span>
+        </div>
+      </div>
+
+      <div class="round-center">
+        <button class="btn btn--white btn--timer" id="board-timer-btn" onclick="toggleTimer()">⏱ 30ث</button>
+        <span class="round-chip" id="round-badge">جولة 1 / 3</span>
+        <button class="btn btn--next" id="next-round-btn" onclick="nextRound()">الجولة التالية ←</button>
+      </div>
+
+      <div class="score-block score-block--rev">
+        <div class="score-info score-info--ltr">
+          <span class="score-label">الفريق الثاني (يمين/يسار)</span>
+          <span class="score-num" id="t2-score">0</span>
+        </div>
+        <div class="score-dot" id="t2-dot"></div>
+      </div>
+    </div>
+
+    <div class="board-canvas">
+      <svg id="hex-svg" class="hex-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="bottombar">
+      <button class="btn btn--ghost btn--sm" onclick="confirmQuit()">✕ إنهاء اللعبة</button>
+      <span class="neutral-chip" id="neutral-count">-- محايدة</span>
+    </div>
+  </div>
+
+  <div id="view-qbank" class="view">
+    <div class="page-shell">
+      <header class="page-hdr">
+        <button class="btn btn--ghost btn--back" onclick="showView('menu')">← رجوع</button>
+        <h2 class="page-hdr__title">بنك الأسئلة</h2>
+      </header>
+      <div class="qbank-layout">
+        <div class="letter-grid" id="letter-grid"></div>
+        <div class="q-panel" id="q-panel">
+          <div class="q-panel__empty">
+            <span class="q-panel__icon">☝️</span>
+            <p>اختر حرفًا لعرض الأسئلة</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-color" class="modal-backdrop" onclick="handleBackdrop(event,'modal-color')">
+    <div class="modal-box modal-box--color">
+      <button class="modal-close" onclick="closeModal('modal-color')">✕</button>
+      <h3 class="modal-title" style="margin-bottom: 1rem;">اختر لون الخلية</h3>
+      <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+        <button class="btn btn--full" id="btn-pick-t1"
+          style="color: #fff; border: 3px solid #1A1A1A; box-shadow: 4px 4px 0px #1A1A1A;"
+          onclick="setCellOwner(1)">الفريق الأول (عمودي)</button>
+        <button class="btn btn--full" id="btn-pick-t2"
+          style="color: #fff; border: 3px solid #1A1A1A; box-shadow: 4px 4px 0px #1A1A1A;"
+          onclick="setCellOwner(2)">الفريق الثاني (أفقي)</button>
+        <button class="btn btn--white btn--full" onclick="setCellOwner(0)">إلغاء التلوين (محايد)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-howto" class="modal-backdrop" onclick="handleBackdrop(event,'modal-howto')">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modal-howto')">✕</button>
+      <h3 class="modal-title">🎮 طريقة اللعب</h3>
+      <ol class="howto-list">
+        <li><span class="step-badge">١</span>
+          <p>الفريق الأول يوصل الخلايا من أعلى لأسفل، والثاني من اليمين لليسار.</p>
+        </li>
+        <li><span class="step-badge">٢</span>
+          <p>يختار الفريق خلية ويجيب على سؤال الحرف الخاص بها.</p>
+        </li>
+        <li><span class="step-badge">٣</span>
+          <p>الإجابة الصحيحة تلوّن الخلية بلون الفريق.</p>
+        </li>
+        <li><span class="step-badge">٤</span>
+          <p>أول فريق يكمل خطاً متصلاً يفوز بالجولة.</p>
+        </li>
+      </ol>
+      <button class="btn btn--black btn--full" onclick="closeModal('modal-howto')">فهمت!</button>
+    </div>
+  </div>
+
+  <div id="modal-win" class="modal-backdrop">
+    <div class="modal-box modal-box--win">
+      <h3 class="modal-title">🏁 انتهت اللعبة!</h3>
+      <div id="win-content" class="win-content"></div>
+      <button class="btn btn--black btn--full" onclick="closeModal('modal-win'); showView('menu')">العودة للقائمة
+        الرئيسية</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
