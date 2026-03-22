@@ -384,4 +384,56 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 function handleBackdrop(event, id) { if (event.target === event.currentTarget) closeModal(id); }
 function confirmQuit() { if (window.confirm('هل تريد إنهاء اللعبة والعودة للقائمة الرئيسية؟')) showView('menu'); }
 
+let _qBankBuilt = false;
+
+function _initQBank() {
+  if (_qBankBuilt) return;
+  _qBankBuilt = true;
+  const container = document.getElementById('letter-grid');
+  if (!container) return;
+  LETTERS.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.className = 'letter-btn';
+    btn.textContent = letter;
+    btn.addEventListener('click', () => _showLetterQs(letter, btn));
+    container.appendChild(btn);
+  });
+}
+
+function _showLetterQs(letter, clickedBtn) {
+  document.querySelectorAll('.letter-btn').forEach(b => b.classList.remove('selected'));
+  clickedBtn.classList.add('selected');
+
+  const questions = QUESTION_BANK[letter] || [];
+
+  const panel = document.getElementById('q-panel');
+  if (!panel) return;
+
+  if (questions.length === 0) {
+    panel.innerHTML = `
+      <div class="q-panel__empty">
+        <span class="q-panel__icon">🔎</span>
+        <p>لا توجد أسئلة مضافة لهذا الحرف حالياً.</p>
+      </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="q-panel__header">
+      <div class="q-letter-badge">${letter}</div>
+      <div class="q-panel__header-text">
+        <h3>أسئلة حرف ${letter}</h3>
+        <small>${questions.length} أسئلة متوفرة</small>
+      </div>
+    </div>
+    <div class="q-list">
+      ${questions.map(q => `
+        <div class="q-item">
+          <span class="q-cat">${q.cat}</span>
+          <span class="q-text">${q.q}</span>
+          <span class="q-ans">الإجابة: ${q.a}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => { buildThemeOptions(); });
