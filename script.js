@@ -1,15 +1,98 @@
 'use strict';
 
+// --- Theme & Particle System ---
+function initTheme() {
+  const savedTheme = localStorage.getItem('horoof-theme') || 'light';
+  setThemeMode(savedTheme);
+}
+
+function setThemeMode(mode) {
+  document.documentElement.setAttribute('data-theme', mode);
+  localStorage.setItem('horoof-theme', mode);
+  
+  // Highlight active button
+  document.querySelectorAll('.theme-btn-icon').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const activeBtn = document.getElementById('btn-theme-' + mode);
+  if (activeBtn) activeBtn.classList.add('active');
+  
+  initParticles();
+}
+
+// Particle Engine
+let particleAnimationId;
+function initParticles() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  
+  if (particleAnimationId) cancelAnimationFrame(particleAnimationId);
+  
+  if (currentTheme === 'classic') {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+  
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+  
+  const isDark = currentTheme === 'dark';
+  const particles = [];
+  const count = window.innerWidth < 768 ? 30 : 60;
+  
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      r: Math.random() * 3 + 1,
+      dx: (Math.random() - 0.5) * 1,
+      dy: (Math.random() - 0.5) * 1,
+      alpha: Math.random() * 0.5 + 0.1,
+      color: isDark ? `255, 255, 255` : `45, 52, 54`
+    });
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+    particles.forEach(p => {
+      p.x += p.dx;
+      p.y += p.dy;
+      
+      if (p.x < 0 || p.x > width) p.dx *= -1;
+      if (p.y < 0 || p.y > height) p.dy *= -1;
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+      ctx.fill();
+    });
+    particleAnimationId = requestAnimationFrame(render);
+  }
+  
+  window.addEventListener('resize', () => {
+    if(document.documentElement.getAttribute('data-theme') !== 'classic') {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+  });
+  
+  render();
+}
+
+// --- Game Logic ---
 const LETTERS = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
 const THEMES = [
-  { id: 'red-blue', label: 'أحمر ضد أزرق', icon: '🔴 vs 🔵', t1: '#E63946', t2: '#3A7BD5' },
-  { id: 'orange-green', label: 'برتقالي ضد أخضر', icon: '🟠 vs 🟢', t1: '#FF8C42', t2: '#27AE60' },
-  { id: 'purple-yellow', label: 'بنفسجي ضد أصفر', icon: '🟣 vs 🟡', t1: '#8E44AD', t2: '#E6A817' }
+  { id: 'classic-colors', label: 'كلاسيك (أحمر ضد أزرق)', icon: '🔴 vs 🔵', t1: '#E63946', t2: '#4A90D9' },
+  { id: 'neon', label: 'نيون (وردي ضد أزرق)', icon: '✨', t1: '#ff4757', t2: '#1e90ff' },
+  { id: 'nature', label: 'طبيعة (برتقالي ضد أخضر)', icon: '🌿', t1: '#ffa502', t2: '#2ed573' },
+  { id: 'royal', label: 'ملكي (أرجواني ضد ذهبي)', icon: '👑', t1: '#9b59b6', t2: '#f1c40f' }
 ];
 
 let STATE = {
   themeIdx: 0, totalRounds: 3, currentRound: 1, teamScores: [0, 0], roundWins: [0, 0],
-  gridSize: 5, timerSetting: 30, // القيم الافتراضية الجديدة
+  gridSize: 5, timerSetting: 30,
   cells: [], gameOver: false, roundWinAwarded: false,
 };
 let CELL_MAP = {};
@@ -50,21 +133,14 @@ function applyTheme(idx) {
 }
 
 function _repaintBoard() {
-  const { t1, t2 } = THEMES[STATE.themeIdx];
-  const colors = ['#FFFFFF', t1, t2];
   document.querySelectorAll('#hex-svg .hex-cell').forEach((g, i) => {
     if (STATE.cells[i] == null) return;
     const owner = STATE.cells[i].owner;
-    const face = g.querySelector('.hex-face');
-    const text = g.querySelector('.hex-text');
     g.classList.toggle('team1', owner === 1);
     g.classList.toggle('team2', owner === 2);
-    if (face) face.style.fill = colors[owner];
-    if (text) text.style.fill = owner === 0 ? '#1A1A1A' : '#FFFFFF';
   });
 }
 
-// إعدادات اللعبة الجديدة
 function changeRounds(delta) {
   STATE.totalRounds = Math.max(1, Math.min(9, STATE.totalRounds + delta));
   document.getElementById('rounds-display').textContent = STATE.totalRounds;
@@ -78,28 +154,26 @@ function changeGridSize(delta) {
 function setTimer(seconds) {
   STATE.timerSetting = seconds;
   document.querySelectorAll('.timer-btn').forEach(b => {
-    b.classList.remove('btn--black', 'selected');
-    b.classList.add('btn--white');
+    b.classList.remove('btn--primary', 'selected');
+    b.classList.add('btn--secondary');
     if (parseInt(b.dataset.time) === seconds) {
-      b.classList.remove('btn--white');
-      b.classList.add('btn--black', 'selected');
+      b.classList.remove('btn--secondary');
+      b.classList.add('btn--primary', 'selected');
     }
   });
 }
 
-// نظام المؤقت أثناء اللعب
 function toggleTimer() {
   const btn = document.getElementById('board-timer-btn');
   if (STATE.timerSetting === 0) { btn.textContent = 'مفتوح'; return; }
 
-  if (timerInterval) { // إيقاف المؤقت
+  if (timerInterval) {
     clearInterval(timerInterval); timerInterval = null;
     btn.textContent = `⏱ ${STATE.timerSetting}ث`;
     btn.classList.remove('timer-urgent');
     return;
   }
 
-  // تشغيل المؤقت
   let timeLeft = STATE.timerSetting;
   btn.textContent = `⏱ ${timeLeft}ث`;
   btn.classList.remove('timer-urgent');
@@ -131,14 +205,10 @@ function startGame() {
   applyTheme(STATE.themeIdx); buildBoard(); showView('board');
 }
 
-// تحويل HEX لكائن ديناميكي يتجاوب مع حجم الشبكة
 const HEX = {
-  R: 44, PAD: 25, SHADOW: 5,
+  R: 44, PAD: 35,
   get COLS() { return STATE.gridSize; },
-  
-  // 🔴 التعديل تم هنا: جعلنا جميع الأعمدة تأخذ نفس العدد تماماً
   rowsFor(col) { return STATE.gridSize; }, 
-  
   cx(col) { return this.PAD + this.R + col * this.R * 1.5; },
   cy(col, row) {
     const rowDy = this.R * Math.sqrt(3);
@@ -158,8 +228,8 @@ const HEX = {
     let maxX = 0, maxY = 0;
     for (let col = 0; col < this.COLS; col++) {
       for (let row = 0; row < this.rowsFor(col); row++) {
-        maxX = Math.max(maxX, this.cx(col) + this.R + this.SHADOW + this.PAD);
-        maxY = Math.max(maxY, this.cy(col, row) + (this.R * Math.sqrt(3)) / 2 + this.SHADOW + this.PAD);
+        maxX = Math.max(maxX, this.cx(col) + this.R + this.PAD);
+        maxY = Math.max(maxY, this.cy(col, row) + (this.R * Math.sqrt(3)) / 2 + this.PAD);
       }
     }
     return { w: Math.ceil(maxX), h: Math.ceil(maxY) };
@@ -211,10 +281,11 @@ function checkWin(team) {
 function buildBoard() {
   STATE.gameOver = false; STATE.roundWinAwarded = false; STATE.teamScores = [0, 0];
   const svg = document.getElementById('hex-svg');
+  // Clean elements but preserve defs (filters)
+  const defsContent = svg.querySelector('defs')?.outerHTML || '';
+  svg.innerHTML = defsContent;
   svg.classList.remove('game-over');
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-  // خوارزمية الخلط المتقدمة لضمان توزيع جديد وعادل للحروف
   const letters = (() => {
     let total = 0; for (let c = 0; c < HEX.COLS; c++) total += HEX.rowsFor(c);
     let pool = [];
@@ -236,22 +307,66 @@ function buildBoard() {
 
   const { w, h } = HEX.naturalSize();
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  // مهم جداً للشبكات الكبيرة (6×6) لكي تتناسب مع الشاشة بدون سكرول
-  svg.style.width = '100%';
-  svg.style.height = '100%';
+  
   const NS = 'http://www.w3.org/2000/svg';
 
+  // --- Exact Zigzag Background Edges (Classic Mode) ---
+  function getHexPoints(col, row) {
+    const cx = HEX.cx(col), cy = HEX.cy(col, row), R = HEX.R;
+    const dy = R * Math.sqrt(3) / 2;
+    return {
+      p0: `${(cx + R).toFixed(2)},${cy.toFixed(2)}`,
+      p1: `${(cx + R/2).toFixed(2)},${(cy + dy).toFixed(2)}`,
+      p2: `${(cx - R/2).toFixed(2)},${(cy + dy).toFixed(2)}`,
+      p3: `${(cx - R).toFixed(2)},${cy.toFixed(2)}`,
+      p4: `${(cx - R/2).toFixed(2)},${(cy - dy).toFixed(2)}`,
+      p5: `${(cx + R/2).toFixed(2)},${(cy - dy).toFixed(2)}`
+    };
+  }
+
+  const top_points = [], bot_points = [];
+  for (let c = 0; c < HEX.COLS; c++) {
+    const pT = getHexPoints(c, 0);
+    top_points.push(pT.p4, pT.p5);
+    const pB = getHexPoints(c, HEX.rowsFor(c) - 1);
+    bot_points.push(pB.p2, pB.p1);
+  }
+
+  const left_points = [];
+  for (let r = 0; r < HEX.rowsFor(0); r++) {
+    const pL = getHexPoints(0, r);
+    left_points.push(pL.p4, pL.p3, pL.p2);
+  }
+
+  const right_points = [];
+  const lastC = HEX.COLS - 1;
+  for (let r = 0; r < HEX.rowsFor(lastC); r++) {
+    const pR = getHexPoints(lastC, r);
+    right_points.push(pR.p5, pR.p0, pR.p1);
+  }
+
   const bgGroup = document.createElementNS(NS, 'g');
+  bgGroup.setAttribute('class', 'bg-edges');
+  
   const polyTop = document.createElementNS(NS, 'polygon');
-  polyTop.setAttribute('points', `0,0 ${w},0 ${w / 2},${h / 2}`); polyTop.setAttribute('class', 'bg-t1');
+  polyTop.setAttribute('points', `0,0 ${w},0 ${top_points.reverse().join(' ')}`);
+  polyTop.setAttribute('class', 'bg-t1 edge-poly');
+  
   const polyBot = document.createElementNS(NS, 'polygon');
-  polyBot.setAttribute('points', `0,${h} ${w},${h} ${w / 2},${h / 2}`); polyBot.setAttribute('class', 'bg-t1');
+  polyBot.setAttribute('points', `${w},${h} 0,${h} ${bot_points.join(' ')}`);
+  polyBot.setAttribute('class', 'bg-t1 edge-poly');
+  
   const polyLeft = document.createElementNS(NS, 'polygon');
-  polyLeft.setAttribute('points', `0,0 0,${h} ${w / 2},${h / 2}`); polyLeft.setAttribute('class', 'bg-t2');
+  polyLeft.setAttribute('points', `0,0 ${left_points.join(' ')} 0,${h}`);
+  polyLeft.setAttribute('class', 'bg-t2 edge-poly');
+  
   const polyRight = document.createElementNS(NS, 'polygon');
-  polyRight.setAttribute('points', `${w},0 ${w},${h} ${w / 2},${h / 2}`); polyRight.setAttribute('class', 'bg-t2');
+  polyRight.setAttribute('points', `${w},0 ${w},${h} ${right_points.reverse().join(' ')}`);
+  polyRight.setAttribute('class', 'bg-t2 edge-poly');
+  
   bgGroup.append(polyTop, polyBot, polyLeft, polyRight);
   svg.appendChild(bgGroup);
+  // ------------------------------------------
 
   let cellIdx = 0;
   for (let col = 0; col < HEX.COLS; col++) {
@@ -259,21 +374,26 @@ function buildBoard() {
       const cX = HEX.cx(col), cY = HEX.cy(col, row), cell = STATE.cells[cellIdx], ci = cellIdx++;
       const g = document.createElementNS(NS, 'g');
       g.setAttribute('class', 'hex-cell');
-      const shadow = document.createElementNS(NS, 'polygon');
-      shadow.setAttribute('points', HEX.points(cX + HEX.SHADOW, cY + HEX.SHADOW, HEX.R - 1.5));
-      shadow.setAttribute('fill', '#1A1A1A');
+      
+      // Add edge classes to directly highlight outer cell strokes
+      if (row === 0) g.classList.add('edge-top');
+      if (row === HEX.rowsFor(col) - 1) g.classList.add('edge-bottom');
+      if (col === 0) g.classList.add('edge-left');
+      if (col === HEX.COLS - 1) g.classList.add('edge-right');
+      
       const face = document.createElementNS(NS, 'polygon');
       face.setAttribute('class', 'hex-face');
-      face.setAttribute('points', HEX.points(cX, cY, HEX.R - 1.5));
-      face.setAttribute('fill', '#FFFFFF');
-      face.setAttribute('stroke', '#1A1A1A');
-      face.setAttribute('stroke-width', '3');
+      face.setAttribute('points', HEX.points(cX, cY, HEX.R));
+      
       const text = document.createElementNS(NS, 'text');
       text.setAttribute('class', 'hex-text');
-      text.setAttribute('x', cX.toFixed(2)); text.setAttribute('y', cY.toFixed(2));
-      text.setAttribute('text-anchor', 'middle'); text.setAttribute('dominant-baseline', 'central');
-      text.setAttribute('fill', '#1A1A1A'); text.textContent = cell.letter;
-      g.append(shadow, face, text);
+      text.setAttribute('x', cX.toFixed(2)); 
+      text.setAttribute('y', cY.toFixed(2));
+      text.setAttribute('text-anchor', 'middle'); 
+      text.setAttribute('dominant-baseline', 'central');
+      text.textContent = cell.letter;
+      
+      g.append(face, text);
       g.addEventListener('click', () => _openColorPicker(ci, g));
       svg.appendChild(g);
     }
@@ -287,8 +407,21 @@ function _openColorPicker(idx, groupEl) {
   if (STATE.gameOver) return;
   activeCellIdx = idx; activeGroupEl = groupEl;
   const { t1, t2 } = THEMES[STATE.themeIdx];
-  document.getElementById('btn-pick-t1').style.background = t1;
-  document.getElementById('btn-pick-t2').style.background = t2;
+  const btnT1 = document.getElementById('btn-pick-t1');
+  const btnT2 = document.getElementById('btn-pick-t2');
+  btnT1.style.background = t1;
+  btnT2.style.background = t2;
+  
+  btnT1.style.color = '#fff';
+  btnT2.style.color = '#fff';
+  if(document.documentElement.getAttribute('data-theme') === 'classic') {
+     btnT1.style.border = '2px solid #1a1a1a';
+     btnT2.style.border = '2px solid #1a1a1a';
+  } else {
+     btnT1.style.border = 'none';
+     btnT2.style.border = 'none';
+  }
+  
   openModal('modal-color');
 }
 
@@ -304,15 +437,8 @@ function setCellOwner(owner) {
   if (owner === 1) STATE.teamScores[0]++; if (owner === 2) STATE.teamScores[1]++;
 
   const groupEl = activeGroupEl;
-  const faceEl = groupEl.querySelector('.hex-face');
-  const textEl = groupEl.querySelector('.hex-text');
-  const { t1, t2 } = THEMES[STATE.themeIdx];
-  const colors = ['#FFFFFF', t1, t2];
-
   groupEl.classList.toggle('team1', owner === 1);
   groupEl.classList.toggle('team2', owner === 2);
-  if (faceEl) faceEl.style.fill = colors[owner];
-  if (textEl) textEl.style.fill = owner === 0 ? '#1A1A1A' : '#FFFFFF';
 
   _updateTopBar(); _updateNeutralChip();
 
@@ -327,7 +453,9 @@ function _handleRoundWin(team) {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; document.getElementById('board-timer-btn').classList.remove('timer-urgent'); }
 
   document.getElementById('hex-svg').classList.add('game-over');
-  document.querySelectorAll('#hex-svg .hex-cell').forEach((g, i) => { if (STATE.cells[i] && STATE.cells[i].owner === team) g.classList.add('win-pulse'); });
+  document.querySelectorAll('#hex-svg .hex-cell').forEach((g, i) => { 
+    if (STATE.cells[i] && STATE.cells[i].owner === team) g.classList.add('win-pulse'); 
+  });
 
   const theme = THEMES[STATE.themeIdx];
   const color = team === 1 ? theme.t1 : theme.t2;
@@ -337,7 +465,7 @@ function _handleRoundWin(team) {
   const isLast = STATE.currentRound >= STATE.totalRounds;
   document.querySelector('#modal-win .win-modal-action')?.remove();
   const actionBtn = document.createElement('button');
-  actionBtn.className = 'btn btn--black btn--full win-modal-action';
+  actionBtn.className = 'btn btn--primary btn--full win-modal-action';
   actionBtn.textContent = isLast ? '🏁 عرض النتيجة النهائية' : '▶ الجولة التالية';
   actionBtn.onclick = () => { closeModal('modal-win'); isLast ? _showFinalModal() : _advanceRound(); };
   document.querySelector('#modal-win .modal-box').appendChild(actionBtn);
@@ -363,9 +491,10 @@ function _showFinalModal() {
   else if (w1 > w0) html = `<div class="win-trophy">🏆</div><div class="win-team-name" style="color:${theme.t2}">الفريق الثاني يفوز!</div><div class="win-score-detail">${w1} جولة &nbsp;·&nbsp; ${w0} جولة</div>`;
   else html = `<div class="win-trophy">🤝</div><div class="win-team-name">تعادل!</div><div class="win-score-detail">${w0} جولة لكل فريق</div>`;
   document.getElementById('win-content').innerHTML = html;
+  
   document.querySelector('#modal-win .win-modal-action')?.remove();
   const actionBtn = document.createElement('button');
-  actionBtn.className = 'btn btn--black btn--full win-modal-action';
+  actionBtn.className = 'btn btn--primary btn--full win-modal-action';
   actionBtn.textContent = 'العودة للقائمة الرئيسية';
   actionBtn.onclick = () => { closeModal('modal-win'); showView('menu'); };
   document.querySelector('#modal-win .modal-box').appendChild(actionBtn);
@@ -430,10 +559,13 @@ function _showLetterQs(letter, clickedBtn) {
       ${questions.map(q => `
         <div class="q-item">
           <span class="q-cat">${q.cat}</span>
-          <span class="q-text">${q.q}</span>
+          <div class="q-text">${q.q}</div>
           <span class="q-ans">الإجابة: ${q.a}</span>
         </div>`).join('')}
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => { buildThemeOptions(); });
+document.addEventListener('DOMContentLoaded', () => { 
+  initTheme();
+  buildThemeOptions(); 
+});
