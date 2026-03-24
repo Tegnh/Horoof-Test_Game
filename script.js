@@ -565,7 +565,143 @@ function _showLetterQs(letter, clickedBtn) {
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => { 
+
+// --- ✍️ TYPEWRITER ANIMATION ENGINE ---
+
+const TAGLINES = [
+  'استحوذ على الخلايا بكلمات تبدأ بالحروف!',
+  'تحدّى صديقك في معركة لغوية ممتعة!',
+  'فكّر سريعاً… واملك الشبكة!',
+  'كلمة واحدة تغير مسار اللعبة!',
+  'هل أنت جاهز للتحدي اللغوي؟',
+];
+
+let taglineIndex = 0;
+let taglineTimeoutId = null;
+
+function typeText(element, text, speed, onDone) {
+  let i = 0;
+  element.textContent = '';
+  function step() {
+    if (i < text.length) {
+      element.textContent += text[i++];
+      setTimeout(step, speed);
+    } else {
+      if (onDone) onDone();
+    }
+  }
+  step();
+}
+
+function eraseText(element, speed, onDone) {
+  function step() {
+    const t = element.textContent;
+    if (t.length > 0) {
+      element.textContent = t.slice(0, -1);
+      setTimeout(step, speed);
+    } else {
+      if (onDone) onDone();
+    }
+  }
+  step();
+}
+
+function cycleTagline() {
+  const el = document.getElementById('tagline-text');
+  if (!el) return;
+  const text = TAGLINES[taglineIndex % TAGLINES.length];
+  taglineIndex++;
+
+  typeText(el, text, 45, () => {
+    // Pause, then erase
+    taglineTimeoutId = setTimeout(() => {
+      eraseText(el, 28, () => {
+        // Short pause before next
+        taglineTimeoutId = setTimeout(cycleTagline, 400);
+      });
+    }, 2800);
+  });
+}
+
+function runMenuTypewriter() {
+  const word1El = document.querySelector('.logo-word-1');
+  const word2El = document.querySelector('.logo-word-2');
+  const cursor  = document.getElementById('logo-cursor');
+  const tagline = document.getElementById('logo-tagline');
+  const taglineCursor = document.querySelector('.tagline-cursor');
+  const menuNav = document.querySelector('.menu-nav');
+  const decoHexes = document.querySelectorAll('.deco-hex');
+  const footer = document.querySelector('.menu-footer');
+  const logoBlock = document.querySelector('.menu-logo-block');
+  const logoTitle = document.getElementById('logo-title-anim');
+
+  if (!word1El || !word2El) return;
+
+  const WORD1 = 'لعبة';
+  const WORD2 = 'حروف';
+
+  // Reveal the logo container via CSS transition BEFORE typing starts.
+  // This avoids the animation-conflict: no more @keyframes controlling opacity,
+  // just a plain CSS transition from opacity:0 to opacity:1.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (logoTitle) logoTitle.classList.add('typing-visible');
+    });
+  });
+
+  // Step 1 — type first word (50ms delay lets the visibility transition begin)
+  setTimeout(() => {
+    typeText(word1El, WORD1, 110, () => {
+
+      // Small pause between words
+      setTimeout(() => {
+
+        // Step 2 — type second word
+        typeText(word2El, WORD2, 110, () => {
+
+          // Step 3 — hide cursor, activate shimmer gradient on logo
+          if (cursor) cursor.classList.add('hidden');
+          if (logoTitle) logoTitle.classList.add('shimmer-active');
+          if (logoBlock) logoBlock.classList.add('glow-active');
+
+          // Step 4 — show tagline & start cycling taglines
+          if (tagline) tagline.classList.add('visible');
+          if (taglineCursor) taglineCursor.classList.add('visible');
+          setTimeout(cycleTagline, 300);
+
+          // Step 5 — staggered button entrance
+          if (menuNav) {
+            menuNav.querySelectorAll('.btn').forEach((btn, i) => {
+              setTimeout(() => {
+                btn.classList.add('btn-animate-in');
+              }, i * 140);
+            });
+          }
+
+          // Step 6 — deco hex pop-in
+          decoHexes.forEach((hex, i) => {
+            setTimeout(() => {
+              hex.classList.add('hex-animate-in');
+            }, 200 + i * 110);
+          });
+
+          // Step 7 — footer
+          if (footer) {
+            setTimeout(() => {
+              footer.classList.add('footer-animate-in');
+            }, 700);
+          }
+        });
+
+      }, 180);
+    });
+  }, 50);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  buildThemeOptions(); 
+  buildThemeOptions();
+
+  // Run the typewriter entrance on load
+  runMenuTypewriter();
 });
