@@ -637,7 +637,7 @@ function runMenuTypewriter() {
 
   if (!word1El || !word2El) return;
 
-  const WORD1 = 'لعبة';
+  const WORD1 = 'وصّلها';
   const WORD2 = 'حروف';
 
   // Reveal the logo container via CSS transition BEFORE typing starts.

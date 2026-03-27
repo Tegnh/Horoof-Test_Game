@@ -1450,22 +1450,10 @@ body:not([data-theme="classic"]) .hex-cell.team2 .hex-text {
     50%, 100% { opacity: 0; }
 }
 
-/* Shimmer sweep on logo after type finishes */
+/* Elegant slow horizontal shimmer for the title gradient */
 @keyframes logoShimmer {
     0% { background-position: 0% center; }
     100% { background-position: -200% center; }
-}
-
-/* Elegant ambient glow on the logo title */
-@keyframes logoPulse {
-    0%, 100% {
-        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15))
-                drop-shadow(0 0 2px rgba(255,255,255,0.1));
-    }
-    50% {
-        filter: drop-shadow(0 6px 15px rgba(0,0,0,0.2))
-                drop-shadow(0 0 12px rgba(255,255,255,0.4));
-    }
 }
 
 /* Staggered slide-up entrance for buttons */
@@ -1542,7 +1530,11 @@ body:not([data-theme="classic"]) .hex-cell.team2 .hex-text {
 #logo-title-anim {
     opacity: 0;
     transition: opacity 0.4s ease, transform 0.4s ease;
-    transform: translateY(-10px) scale(0.95);
+    transform: translateY(-5px);
+}
+/* Keep it perfectly steady while typing */
+#logo-title-anim:not(.shimmer-active) {
+    animation: none;
 }
 
 /* Reveal state: typed and visible */
@@ -1565,7 +1557,8 @@ body:not([data-theme="classic"]) .hex-cell.team2 .hex-text {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: logoShimmer 6s linear infinite, logoPulse 4s ease-in-out infinite;
+    /* Beautiful elegant floating and slow color shimmer */
+    animation: logoFloat 4s ease-in-out infinite, logoShimmer 8s linear infinite;
 }
 
 /* Classic mode: no gradient text shimmer */
@@ -1575,7 +1568,7 @@ body:not([data-theme="classic"]) .hex-cell.team2 .hex-text {
     -webkit-background-clip: initial;
     -webkit-text-fill-color: initial;
     background-clip: initial;
-    animation: logoPulse 3s ease-in-out infinite;
+    animation: logoFloat 4s ease-in-out infinite;
 }
 
 /* --- Logo sub tagline --- */
